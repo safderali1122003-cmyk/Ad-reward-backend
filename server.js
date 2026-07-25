@@ -12,11 +12,8 @@ app.get('/', (req, res) => {
 app.post('/api/withdraw', async (req, res) => {
   const { destination, amountInSats } = req.body;
 
-  if (!destination || !amountInSats) {
-    return res.status(400).json({ 
-      success: false, 
-      error: 'Missing destination or amountInSats' 
-    });
+  if (!destination) {
+    return res.status(400).json({ success: false, error: 'Missing destination' });
   }
 
   try {
@@ -28,27 +25,28 @@ app.post('/api/withdraw', async (req, res) => {
       });
     }
 
-    const ln = new LN(connectionString);
+    const ln = new LN({ NostrWalletConnectUrl: connectionString });
 
-    // Pay invoice or address via Alby SDK
-    const response = await ln.pay({
+    // Use sendPayment for NWC Lightning payouts
+    const response = await ln.sendPayment({
       invoice: destination,
-      amount: amountInSats
+      amount: amountInSats ? Number(amountInSats) : undefined
     });
 
     return res.json({ 
       success: true, 
-      preimage: response.preimage || 'success' 
+      preimage: response.preimage || 'payment_sent' 
     });
   } catch (error) {
     console.error('Payout failed:', error.message);
     return res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to process payout' 
+      error: error.message || 'Payout failed' 
     });
   }
 });
 
 module.exports = app;
+
 
 
